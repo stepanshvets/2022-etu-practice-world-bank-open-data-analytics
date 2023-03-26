@@ -30,42 +30,42 @@ public class AuthRestController {
         this.authenticationManager = authenticationManager;
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<?> authenticate(@RequestBody AuthRequestDTO request) {
-        try {
-            UsernamePasswordAuthenticationToken authRequest = new UsernamePasswordAuthenticationToken(
-                    request.getUsername(), request.getPassword());
-            Authentication authentication = authenticationManager.authenticate(authRequest);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+//    @PostMapping("/login")
+//    public ResponseEntity<?> authenticate(@RequestBody AuthRequestDTO request) {
+//        try {
+//            UsernamePasswordAuthenticationToken authRequest = new UsernamePasswordAuthenticationToken(
+//                    request.getUsername(), request.getPassword());
+//            Authentication authentication = authenticationManager.authenticate(authRequest);
+//            SecurityContextHolder.getContext().setAuthentication(authentication);
+//
+//            return ResponseEntity.ok(HttpStatus.OK);
+//        } catch (AuthenticationException e) {
+//            return new ResponseEntity<>("Invalid email/password combination", HttpStatus.FORBIDDEN);
+//        }
+//    }
 
-            return ResponseEntity.ok(HttpStatus.OK);
-        } catch (AuthenticationException e) {
-            return new ResponseEntity<>("Invalid email/password combination", HttpStatus.FORBIDDEN);
-        }
-    }
-
-    @PostMapping("/logout")
-    public void logout(HttpServletRequest request, HttpServletResponse response) {
-        boolean isSecure = false;
-        String contextPath = null;
-        if (request != null) {
-            HttpSession session = request.getSession(false);
-            if (session != null) {
-                session.invalidate();
-            }
-            isSecure = request.isSecure();
-            contextPath = request.getContextPath();
-        }
-        SecurityContext context = SecurityContextHolder.getContext();
-        SecurityContextHolder.clearContext();
-        context.setAuthentication(null);
-        if (response != null) {
-            Cookie cookie = new Cookie("JSESSIONID", null);
-            String cookiePath = StringUtils.hasText(contextPath) ? contextPath : "/";
-            cookie.setPath(cookiePath);
-            cookie.setMaxAge(0);
-            cookie.setSecure(isSecure);
-            response.addCookie(cookie);
-        }
-    }
+//    @PostMapping("/logout")
+//    public void logout(HttpServletRequest request, HttpServletResponse response) {
+//        boolean isSecure = false;
+//        String contextPath = null;
+//        if (request != null) {
+//            HttpSession session = request.getSession(false);
+//            if (session != null) {
+//                session.invalidate();
+//            }
+//            isSecure = request.isSecure();
+//            contextPath = request.getContextPath();
+//        }
+//        SecurityContext context = SecurityContextHolder.getContext();
+//        SecurityContextHolder.clearContext();
+//        context.setAuthentication(null);
+//        if (response != null) {
+//            Cookie cookie = new Cookie("JSESSIONID", null);
+//            String cookiePath = StringUtils.hasText(contextPath) ? contextPath : "/";
+//            cookie.setPath(cookiePath);
+//            cookie.setMaxAge(0);
+//            cookie.setSecure(isSecure);
+//            response.addCookie(cookie);
+//        }
+//    }
 }

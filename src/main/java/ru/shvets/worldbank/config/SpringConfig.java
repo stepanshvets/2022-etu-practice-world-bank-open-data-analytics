@@ -13,8 +13,14 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.logout.CookieClearingLogoutHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import ru.shvets.worldbank.model.Permission;
+import ru.shvets.worldbank.security.LoginFilter;
+
+import javax.servlet.http.Cookie;
 
 
 @Configuration
@@ -29,8 +35,18 @@ public class SpringConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        AbstractAuthenticationProcessingFilter loginFilter =
+                new LoginFilter();
+        loginFilter.setAuthenticationManager(authenticationManager(http));
+
+        Cookie sessionCookie = new Cookie("JSESSIONID", null);
+        sessionCookie.setPath("/");
+        sessionCookie.setMaxAge(0);
+        CookieClearingLogoutHandler logoutHandler = new CookieClearingLogoutHandler(sessionCookie);
+
         http
                 .csrf().disable()
+                .addFilterAt(loginFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeRequests()
                 .antMatchers("/").permitAll()
                 .antMatchers("/api/v1/auth/login").permitAll()
@@ -39,7 +55,12 @@ public class SpringConfig {
                 .antMatchers(HttpMethod.PATCH, "/api/v1/**").hasAuthority(Permission.WRITE.getPermission())
                 .antMatchers(HttpMethod.DELETE, "/api/v1/**").hasAuthority(Permission.WRITE.getPermission())
                 .anyRequest()
-                .authenticated();
+                .authenticated()
+                .and()
+                .logout()
+                .logoutRequestMatcher(new AntPathRequestMatcher("/api/v1/auth/logout", "POST"))
+                .addLogoutHandler(logoutHandler);
+        ;
 
         return http.build();
     }
