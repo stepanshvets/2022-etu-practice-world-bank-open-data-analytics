@@ -1,18 +1,19 @@
-package ru.shvets.worldbank.controller;
+package ru.shvets.worldbank.dto;
 
 public class AuthRequestDTO {
-    private String username;
+    private String email;
+
     private String password;
 
     public AuthRequestDTO() {
     }
 
-    public String getUsername() {
-        return username;
+    public String getEmail() {
+        return email;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getPassword() {
