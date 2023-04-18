@@ -35,6 +35,7 @@ public class SecurityConfig {
                 .csrf().disable()
                 .authorizeRequests()
                 .antMatchers("/").permitAll()
+                .antMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .antMatchers("/api/v1/auth/login").permitAll()
                 .antMatchers("/api/v1/auth/registration").permitAll()
                 .antMatchers("/api/v1/auth/logout").hasAuthority(Permission.READ.getPermission())
