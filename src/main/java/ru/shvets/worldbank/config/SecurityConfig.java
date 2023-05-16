@@ -33,6 +33,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf().disable()
+                .cors().disable()
                 .authorizeRequests()
                 .antMatchers("/").permitAll()
                 .antMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
@@ -41,6 +42,7 @@ public class SecurityConfig {
                 .antMatchers("/api/v1/auth/logout").hasAuthority(Permission.READ.getPermission())
                 .antMatchers(HttpMethod.GET, "/api/v1/**").hasAuthority(Permission.READ.getPermission())
                 .antMatchers(HttpMethod.POST, "/api/v1/**").hasAuthority(Permission.WRITE.getPermission())
+                .antMatchers(HttpMethod.PUT, "/api/v1/**").hasAuthority(Permission.WRITE.getPermission())
                 .antMatchers(HttpMethod.PATCH, "/api/v1/**").hasAuthority(Permission.WRITE.getPermission())
                 .antMatchers(HttpMethod.DELETE, "/api/v1/**").hasAuthority(Permission.WRITE.getPermission())
                 .anyRequest()
