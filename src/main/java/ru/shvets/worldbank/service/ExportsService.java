@@ -2,28 +2,34 @@ package ru.shvets.worldbank.service;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.shvets.worldbank.dto.DataDTO;
 import ru.shvets.worldbank.model.Exports;
+import ru.shvets.worldbank.model.Gdp;
 import ru.shvets.worldbank.repository.ExportsRepository;
+import ru.shvets.worldbank.util.DataIllegalArgumentException;
+import ru.shvets.worldbank.util.DataNotFoundException;
+import ru.shvets.worldbank.util.DataNullPointerException;
 import ru.shvets.worldbank.util.QueryParameterException;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional(readOnly = true)
 public class ExportsService {
     private final ExportsRepository exportsRepository;
+    private final DataServiceUtil dataServiceUtil;
     private final ModelMapper modelMapper;
 
     @Autowired
-    public ExportsService(ExportsRepository exportsRepository, ModelMapper modelMapper) {
+    public ExportsService(ExportsRepository exportsRepository, DataServiceUtil dataServiceUtil, ModelMapper modelMapper) {
         this.exportsRepository = exportsRepository;
+        this.dataServiceUtil = dataServiceUtil;
         this.modelMapper = modelMapper;
     }
 
@@ -35,11 +41,11 @@ public class ExportsService {
             Integer startDate = (startDateString == null)? 0: Integer.parseInt(startDateString);
             Integer endDate = (endDateString == null)? LocalDate.now().getYear() : Integer.parseInt(endDateString);
             Double startValue = (startValueString == null)? 0: Double.parseDouble(startValueString);
-            Double endValue = (endValueString == null)? 99999999999999999998.0: Double.parseDouble(endValueString);
-            Sort sort = getSort(sortList);
+            Double endValue = (endValueString == null)? 1.0E38: Double.parseDouble(endValueString);
+            Sort sort = dataServiceUtil.getSort(sortList);
             Integer page = (pageString == null)? null: Integer.parseInt(pageString);
             Integer perPage = (perPageString == null)? 50: Integer.parseInt(perPageString);
-            Pageable pageable = getPageable(page, perPage, sort);
+            Pageable pageable = dataServiceUtil.getPageable(page, perPage, sort);
 
             if (pageable == null) {
                 if (countryCodeList == null)
@@ -57,34 +63,71 @@ public class ExportsService {
         }
     }
 
-    private Pageable getPageable(Integer page, Integer perPage, Sort sort) {
-        if (page == null)
-            return null;
-        return PageRequest.of(page, perPage, sort);
+    @Transactional
+    public DataDTO save(DataDTO dataDTO) throws DataIllegalArgumentException, DataNullPointerException {
+        dataServiceUtil.checkDataDTO(dataDTO);
+        Exports exports = convertToExports(dataDTO);
+        dataServiceUtil.checkData(exports);
+        exports.setCountryCode(exports.getCountryCode().toUpperCase());
+        if (exportsRepository.findByYearAndCountryCode(exports.getYear(), exports.getCountryCode()).isPresent())
+            throw new DataIllegalArgumentException("Data with year " + exports.getYear() + " and country code "
+                    + exports.getCountryCode() + " already exist");
+        exportsRepository.save(exports);
+        return convertToDataDTO(exports);
     }
 
-    private Sort getSort(List<String> sortList) {
-        if (sortList == null)
-            return null;
+    @Transactional
+    public DataDTO putEdit(DataDTO dataDTO, String yearString, String countryCode)
+            throws QueryParameterException, DataNullPointerException, DataIllegalArgumentException, DataNotFoundException {
+        dataServiceUtil.checkDataDTO(dataDTO);
+        Exports exports = convertToExports(dataDTO);
+        int year = dataServiceUtil.extractYearParameter(yearString);
 
-        List<String> fieldNames = List.of("year", "country_code", "country", "value");
-        List<Sort.Order> orders = new ArrayList<>();
-        for (String s: sortList) {
-            String field = s.substring(1).toLowerCase();
-            if (!fieldNames.contains(field))
-                throw new QueryParameterException("The parameter value is invalid");
-            if (s.startsWith("+"))
-                orders.add(new Sort.Order(Sort.Direction.ASC, field));
-            else if (s.startsWith("-"))
-                orders.add(new Sort.Order(Sort.Direction.DESC, field));
-            else
-                throw new QueryParameterException("The parameter value is invalid");
-        }
-        return Sort.by(orders);
+        Exports exportsToUpdate = exportsRepository.findByYearAndCountryCode(year, countryCode).
+                orElseThrow(() -> new DataNotFoundException("There is no data with these year and country code"));
+        exports.setId(exportsToUpdate.getId());
+        exports.setCountryCode(exports.getCountryCode().toUpperCase());
+        exportsRepository.save(exports);
+
+        return convertToDataDTO(exports);
     }
 
-    public void save(DataDTO dataDTO) {
+    @Transactional
+    public DataDTO patchEdit(DataDTO dataDTO, String yearString, String countryCode)
+            throws QueryParameterException, DataIllegalArgumentException, DataNotFoundException {
+        Exports exports = convertToExports(dataDTO);
+        dataServiceUtil.checkData(exports);
+        int year = dataServiceUtil.extractYearParameter(yearString);
 
+        Exports exportsToUpdate = exportsRepository.findByYearAndCountryCode(year, countryCode).
+                orElseThrow(() -> new DataNotFoundException("There is no data with these year and country code"));
+
+        if (exports.getYear() != null)
+            exportsToUpdate.setYear(exports.getYear());
+        if (exports.getCountryCode() != null)
+            exportsToUpdate.setCountryCode(exports.getCountryCode());
+        if (exports.getCountry() != null)
+            exportsToUpdate.setCountry(exports.getCountry());
+        if (exports.getValue() != null)
+            exportsToUpdate.setValue(exports.getValue());
+
+        exportsToUpdate.setCountryCode(exportsToUpdate.getCountryCode().toUpperCase());
+        return convertToDataDTO(exportsToUpdate);
+    }
+
+    @Transactional
+    public void delete(String yearString, String countryCode)
+            throws QueryParameterException, DataNotFoundException {
+        int year = dataServiceUtil.extractYearParameter(yearString);
+
+        Exports exportsToUpdate = exportsRepository.findByYearAndCountryCode(year, countryCode).
+                orElseThrow(() -> new DataNotFoundException("There is no data with these year and country code"));
+
+        exportsRepository.delete(exportsToUpdate);
+    }
+
+    private Exports convertToExports(DataDTO dataDTO) {
+        return modelMapper.map(dataDTO, Exports.class);
     }
 
     private DataDTO convertToDataDTO(Exports exports) {

@@ -1,10 +1,8 @@
 package ru.shvets.worldbank.controller;
 
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
-import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.shvets.worldbank.dto.DataDTO;
 import ru.shvets.worldbank.service.GdpService;
@@ -22,34 +20,40 @@ public class GdpController {
     }
 
     @GetMapping("")
-    public List<DataDTO> find(@RequestParam(name = "country_code",required = false) List<String> countryCodeList,
-                              @RequestParam(name = "start_date",required = false) String startDate,
-                              @RequestParam(name = "end_date",required = false) String endDate,
-                              @RequestParam(name = "start_value",required = false) String startValue,
-                              @RequestParam(name = "end_value",required = false) String endValue,
-                              @RequestParam(name = "sort",required = false) List<String> sortList,
-                              @RequestParam(name = "page",required = false) String page,
-                              @RequestParam(name = "per_page",required = false) String perPage) {
+    public List<DataDTO> find(@RequestParam(name = "country_code", required = false) List<String> countryCodeList,
+                              @RequestParam(name = "start_date", required = false) String startDate,
+                              @RequestParam(name = "end_date", required = false) String endDate,
+                              @RequestParam(name = "start_value", required = false) String startValue,
+                              @RequestParam(name = "end_value", required = false) String endValue,
+                              @RequestParam(name = "sort", required = false) List<String> sortList,
+                              @RequestParam(name = "page", required = false) String page,
+                              @RequestParam(name = "per_page", required = false) String perPage) {
         return gdpService.find(countryCodeList, startDate, endDate, startValue, endValue, sortList, page, perPage);
     }
 
     @PostMapping("")
-    public void save(@RequestBody DataDTO dataDTO) {
-        gdpService.save(dataDTO);
+    public ResponseEntity<DataDTO> save(@RequestBody DataDTO dataDTO) {
+        return new ResponseEntity<>(gdpService.save(dataDTO), HttpStatus.CREATED);
     }
 
     @PutMapping("")
-    public void putEdit(DataDTO dataDTO) {
-
+    public ResponseEntity<DataDTO> putEdit(@RequestBody DataDTO dataDTO,
+                        @RequestParam(name = "year") String year,
+                        @RequestParam(name = "country_code") String countryCode) {
+        return new ResponseEntity<>(gdpService.putEdit(dataDTO, year, countryCode), HttpStatus.CREATED);
     }
 
     @PatchMapping("")
-    public void patchEdit(DataDTO dataDTO) {
-
+    public ResponseEntity<DataDTO> patchEdit(@RequestBody DataDTO dataDTO,
+                          @RequestParam(name = "year") String year,
+                          @RequestParam(name = "country_code") String countryCode) {
+        return new ResponseEntity<>(gdpService.patchEdit(dataDTO, year, countryCode), HttpStatus.CREATED);
     }
 
     @DeleteMapping("")
-    public void delete(DataDTO dataDTO) {
-
+    public ResponseEntity<?> delete(@RequestParam(name = "year") String year,
+                       @RequestParam(name = "country_code") String countryCode) {
+        gdpService.delete(year, countryCode);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

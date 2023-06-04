@@ -5,11 +5,15 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import ru.shvets.worldbank.model.Exports;
 import ru.shvets.worldbank.model.Inflation;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface InflationRepository extends JpaRepository<Inflation, Integer> {
+    Optional<Inflation> findByYearAndCountryCode(Integer year, String countryCode);
+
     @Query(value = "SELECT g FROM Inflation g WHERE g.year >= :startDate AND g.year <= :endDate" +
             " AND g.value >= :startValue AND g.value <= :endValue")
     List<Inflation> find(@Param("startDate")Integer startDate, @Param("endDate")Integer endDate,

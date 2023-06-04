@@ -6,10 +6,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import ru.shvets.worldbank.model.Exports;
+import ru.shvets.worldbank.model.Gdp;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ExportsRepository extends JpaRepository<Exports, Integer> {
+    Optional<Exports> findByYearAndCountryCode(Integer year, String countryCode);
+
     @Query(value = "SELECT g FROM Exports g WHERE g.year >= :startDate AND g.year <= :endDate" +
             " AND g.value >= :startValue AND g.value <= :endValue")
     List<Exports> find(@Param("startDate")Integer startDate, @Param("endDate")Integer endDate,

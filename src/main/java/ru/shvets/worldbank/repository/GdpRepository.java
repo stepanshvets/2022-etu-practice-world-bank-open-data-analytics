@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import ru.shvets.worldbank.model.Gdp;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface GdpRepository extends JpaRepository<Gdp, Integer> {
     List<Gdp> findByYearIsGreaterThanEqualAndYearIsLessThanEqual(
@@ -18,6 +19,8 @@ public interface GdpRepository extends JpaRepository<Gdp, Integer> {
             List<String> countryCodeList, Integer startDate, Integer endDate, Sort sort);
     List<Gdp> findByCountryCodeInAndYearIsGreaterThanEqualAndYearIsLessThanEqual(
             List<String> countryCodeList, Integer startDate, Integer endDate, Pageable pageable);
+
+    Optional<Gdp> findByYearAndCountryCode(Integer year, String countryCode);
 
     @Query(value = "SELECT g FROM Gdp g WHERE g.year >= :startDate AND g.year <= :endDate" +
             " AND g.value >= :startValue AND g.value <= :endValue")

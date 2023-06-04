@@ -1,10 +1,9 @@
 package ru.shvets.worldbank.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import ru.shvets.worldbank.dto.DataDTO;
 import ru.shvets.worldbank.service.ImportsService;
 
@@ -30,5 +29,31 @@ public class ImportsController {
                               @RequestParam(name = "page",required = false) String page,
                               @RequestParam(name = "per_page",required = false) String perPage) {
         return importsService.find(countryCodeList, startDate, endDate, startValue, endValue, sortList, page, perPage);
+    }
+
+    @PostMapping("")
+    public ResponseEntity<DataDTO> save(@RequestBody DataDTO dataDTO) {
+        return new ResponseEntity<>(importsService.save(dataDTO), HttpStatus.CREATED);
+    }
+
+    @PutMapping("")
+    public ResponseEntity<DataDTO> putEdit(@RequestBody DataDTO dataDTO,
+                                           @RequestParam(name = "year") String year,
+                                           @RequestParam(name = "country_code") String countryCode) {
+        return new ResponseEntity<>(importsService.putEdit(dataDTO, year, countryCode), HttpStatus.CREATED);
+    }
+
+    @PatchMapping("")
+    public ResponseEntity<DataDTO> patchEdit(@RequestBody DataDTO dataDTO,
+                                             @RequestParam(name = "year") String year,
+                                             @RequestParam(name = "country_code") String countryCode) {
+        return new ResponseEntity<>(importsService.patchEdit(dataDTO, year, countryCode), HttpStatus.CREATED);
+    }
+
+    @DeleteMapping("")
+    public ResponseEntity<?> delete(@RequestParam(name = "year") String year,
+                                    @RequestParam(name = "country_code") String countryCode) {
+        importsService.delete(year, countryCode);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

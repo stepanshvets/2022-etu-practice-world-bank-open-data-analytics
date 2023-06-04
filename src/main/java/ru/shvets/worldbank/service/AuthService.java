@@ -49,8 +49,9 @@ public class AuthService {
     }
 
     public AuthResponseDTO authenticate(AuthRequestDTO requestDTO)
-            throws AuthenticationException, ValidationException {
+            throws AuthenticationException, AuthValidationException {
         authRequestDTOValidator.validate(requestDTO);
+
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(requestDTO.getEmail(), requestDTO.getPassword()));
 
@@ -64,7 +65,7 @@ public class AuthService {
 
     @Transactional
     public AuthResponseDTO register(RegistrationRequestDTO requestDTO)
-            throws RegistrationException, ValidationException {
+            throws RegistrationException, AuthValidationException {
         registrationRequestDTOValidator.validate(requestDTO);
         User user = convertToUser(requestDTO);
         if (userRepository.findByEmail(user.getEmail()).isPresent())
@@ -86,14 +87,11 @@ public class AuthService {
     @Transactional
     public AuthResponseDTO refresh(HttpServletRequest request) throws JwtAuthenticationException {
         final String refreshToken = jwtUtil.getToken(request);
-        String username = jwtUtil.extractUsername(refreshToken);
+        String username = jwtUtil.extractUsername(refreshToken, true);
         User user = userRepository.findByEmail(username).orElseThrow(
                 () -> new UsernameNotFoundException("User is not found!"));
         Token token = tokenRepository.findByRefreshToken(refreshToken).orElseThrow(
                 () -> new JwtAuthenticationException("JWT token is expired or invalid"));
-        if (!token.getRefreshToken().equals(refreshToken)) {
-            throw new JwtAuthenticationException("JWT token is expired or invalid");
-        }
 
         String accessToken = jwtUtil.generateAccessToken(user);
         String newRefreshToken = jwtUtil.generateRefreshToken(user);

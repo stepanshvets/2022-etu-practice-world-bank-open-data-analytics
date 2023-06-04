@@ -12,6 +12,6 @@ public class RegistrationRequestDTOValidator {
                 || requestDTO.getFirstName() == null || requestDTO.getFirstName().isEmpty()
                 || requestDTO.getFirstName().length() > 100 || requestDTO.getLastName() == null
                 || requestDTO.getLastName().isEmpty() || requestDTO.getLastName().length() > 100)
-            throw new ValidationException("Some fields are null or incorrect");
+            throw new AuthValidationException("Some fields are null or incorrect");
     }
 }

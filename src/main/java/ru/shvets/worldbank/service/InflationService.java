@@ -2,28 +2,33 @@ package ru.shvets.worldbank.service;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.shvets.worldbank.dto.DataDTO;
+import ru.shvets.worldbank.model.Imports;
 import ru.shvets.worldbank.model.Inflation;
 import ru.shvets.worldbank.repository.InflationRepository;
+import ru.shvets.worldbank.util.DataIllegalArgumentException;
+import ru.shvets.worldbank.util.DataNotFoundException;
+import ru.shvets.worldbank.util.DataNullPointerException;
 import ru.shvets.worldbank.util.QueryParameterException;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class InflationService {
     private final InflationRepository inflationRepository;
+    private final DataServiceUtil dataServiceUtil;
     private final ModelMapper modelMapper;
 
     @Autowired
-    public InflationService(InflationRepository inflationRepository, ModelMapper modelMapper) {
+    public InflationService(InflationRepository inflationRepository, DataServiceUtil dataServiceUtil, ModelMapper modelMapper) {
         this.inflationRepository = inflationRepository;
+        this.dataServiceUtil = dataServiceUtil;
         this.modelMapper = modelMapper;
     }
 
@@ -35,11 +40,11 @@ public class InflationService {
             Integer startDate = (startDateString == null)? 0: Integer.parseInt(startDateString);
             Integer endDate = (endDateString == null)? LocalDate.now().getYear() : Integer.parseInt(endDateString);
             Double startValue = (startValueString == null)? 0: Double.parseDouble(startValueString);
-            Double endValue = (endValueString == null)? 99999999999999999998.0: Double.parseDouble(endValueString);
-            Sort sort = getSort(sortList);
+            Double endValue = (endValueString == null)? 1.0E38: Double.parseDouble(endValueString);
+            Sort sort = dataServiceUtil.getSort(sortList);
             Integer page = (pageString == null)? null: Integer.parseInt(pageString);
             Integer perPage = (perPageString == null)? 50: Integer.parseInt(perPageString);
-            Pageable pageable = getPageable(page, perPage, sort);
+            Pageable pageable = dataServiceUtil.getPageable(page, perPage, sort);
 
             if (pageable == null) {
                 if (countryCodeList == null)
@@ -57,34 +62,71 @@ public class InflationService {
         }
     }
 
-    private Pageable getPageable(Integer page, Integer perPage, Sort sort) {
-        if (page == null)
-            return null;
-        return PageRequest.of(page, perPage, sort);
+    @Transactional
+    public DataDTO save(DataDTO dataDTO) throws DataIllegalArgumentException, DataNullPointerException {
+        dataServiceUtil.checkDataDTO(dataDTO);
+        Inflation inflation = convertToInflation(dataDTO);
+        dataServiceUtil.checkData(inflation);
+        inflation.setCountryCode(inflation.getCountryCode().toUpperCase());
+        if (inflationRepository.findByYearAndCountryCode(inflation.getYear(), inflation.getCountryCode()).isPresent())
+            throw new DataIllegalArgumentException("Data with year " + inflation.getYear() + " and country code "
+                    + inflation.getCountryCode() + " already exist");
+        inflationRepository.save(inflation);
+        return convertToDataDTO(inflation);
     }
 
-    private Sort getSort(List<String> sortList) {
-        if (sortList == null)
-            return null;
+    @Transactional
+    public DataDTO putEdit(DataDTO dataDTO, String yearString, String countryCode)
+            throws QueryParameterException, DataNullPointerException, DataIllegalArgumentException, DataNotFoundException {
+        dataServiceUtil.checkDataDTO(dataDTO);
+        Inflation inflation = convertToInflation(dataDTO);
+        int year = dataServiceUtil.extractYearParameter(yearString);
 
-        List<String> fieldNames = List.of("year", "country_code", "country", "value");
-        List<Sort.Order> orders = new ArrayList<>();
-        for (String s: sortList) {
-            String field = s.substring(1).toLowerCase();
-            if (!fieldNames.contains(field))
-                throw new QueryParameterException("The parameter value is invalid");
-            if (s.startsWith("+"))
-                orders.add(new Sort.Order(Sort.Direction.ASC, field));
-            else if (s.startsWith("-"))
-                orders.add(new Sort.Order(Sort.Direction.DESC, field));
-            else
-                throw new QueryParameterException("The parameter value is invalid");
-        }
-        return Sort.by(orders);
+        Inflation inflationToUpdate = inflationRepository.findByYearAndCountryCode(year, countryCode).
+                orElseThrow(() -> new DataNotFoundException("There is no data with these year and country code"));
+        inflation.setId(inflationToUpdate.getId());
+        inflation.setCountryCode(inflation.getCountryCode().toUpperCase());
+        inflationRepository.save(inflation);
+
+        return convertToDataDTO(inflation);
     }
 
-    public void save(DataDTO dataDTO) {
+    @Transactional
+    public DataDTO patchEdit(DataDTO dataDTO, String yearString, String countryCode)
+            throws QueryParameterException, DataIllegalArgumentException, DataNotFoundException {
+        Inflation inflation = convertToInflation(dataDTO);
+        dataServiceUtil.checkData(inflation);
+        int year = dataServiceUtil.extractYearParameter(yearString);
 
+        Inflation inflationToUpdate = inflationRepository.findByYearAndCountryCode(year, countryCode).
+                orElseThrow(() -> new DataNotFoundException("There is no data with these year and country code"));
+
+        if (inflation.getYear() != null)
+            inflationToUpdate.setYear(inflation.getYear());
+        if (inflation.getCountryCode() != null)
+            inflationToUpdate.setCountryCode(inflation.getCountryCode());
+        if (inflation.getCountry() != null)
+            inflationToUpdate.setCountry(inflation.getCountry());
+        if (inflation.getValue() != null)
+            inflationToUpdate.setValue(inflation.getValue());
+
+        inflationToUpdate.setCountryCode(inflationToUpdate.getCountryCode().toUpperCase());
+        return convertToDataDTO(inflationToUpdate);
+    }
+
+    @Transactional
+    public void delete(String yearString, String countryCode)
+            throws QueryParameterException, DataNotFoundException {
+        int year = dataServiceUtil.extractYearParameter(yearString);
+
+        Inflation inflationToUpdate = inflationRepository.findByYearAndCountryCode(year, countryCode).
+                orElseThrow(() -> new DataNotFoundException("There is no data with these year and country code"));
+
+        inflationRepository.delete(inflationToUpdate);
+    }
+
+    private Inflation convertToInflation(DataDTO dataDTO) {
+        return modelMapper.map(dataDTO, Inflation.class);
     }
 
     private DataDTO convertToDataDTO(Inflation inflation) {

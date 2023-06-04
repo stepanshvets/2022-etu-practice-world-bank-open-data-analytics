@@ -9,6 +9,6 @@ public class AuthRequestDTOValidator {
         if (requestDTO.getEmail() == null || requestDTO.getEmail().isEmpty()
                 || requestDTO.getEmail().length() > 255 || requestDTO.getPassword() == null
                 || requestDTO.getPassword().isEmpty() || requestDTO.getPassword().length() > 255)
-            throw new ValidationException("Some fields are null or incorrect");
+            throw new AuthValidationException("Some fields are null or incorrect");
     }
 }

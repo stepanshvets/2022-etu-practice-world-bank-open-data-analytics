@@ -1,6 +1,9 @@
 package ru.shvets.worldbank.config;
 
+import org.modelmapper.Condition;
+import org.modelmapper.Conditions;
 import org.modelmapper.ModelMapper;
+import org.modelmapper.TypeMap;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -12,6 +15,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import ru.shvets.worldbank.model.Gdp;
 import ru.shvets.worldbank.repository.UserRepository;
 
 
@@ -54,6 +58,10 @@ public class ApplicationConfig {
 
     @Bean
     public ModelMapper modelMapper(){
-        return new ModelMapper();
+        ModelMapper modelMapper = new ModelMapper();
+        Condition notNull = ctx -> ctx.getSource() != null;
+        TypeMap<Gdp, Gdp> propertyMapper = modelMapper.createTypeMap(Gdp.class, Gdp.class);
+        propertyMapper.addMappings(mapper -> mapper.when(notNull).map(Gdp::getCountry, Gdp::setCountry));
+        return modelMapper;
     }
 }

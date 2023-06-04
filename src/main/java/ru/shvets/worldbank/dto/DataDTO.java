@@ -1,10 +1,23 @@
 package ru.shvets.worldbank.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import javax.validation.constraints.NotNull;
+
 public class DataDTO {
     private String indicator;
+
+    @NotNull(message = "year")
     private Integer year;
+
+    @NotNull(message = "country")
     private String country;
+
+    @NotNull(message = "country code")
+    @JsonProperty("country code")
     private String countryCode;
+
+    @NotNull(message = "value")
     private Double value;
 
     public DataDTO() {
