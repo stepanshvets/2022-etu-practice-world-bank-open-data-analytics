@@ -25,6 +25,8 @@ public class User implements UserDetails {
 
     private String lastName;
 
+    private Boolean locked;
+
     public User() {
     }
 
@@ -50,7 +52,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return locked == null || !locked;
     }
 
     @Override
@@ -105,6 +107,14 @@ public class User implements UserDetails {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
+    }
+
+    public Boolean getLocked() {
+        return locked;
+    }
+
+    public void setLocked(Boolean locked) {
+        this.locked = locked;
     }
 
     @Override

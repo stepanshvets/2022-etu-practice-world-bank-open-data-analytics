@@ -1,8 +1,10 @@
 package ru.shvets.worldbank.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 import ru.shvets.worldbank.dto.AuthRequestDTO;
@@ -12,7 +14,7 @@ import ru.shvets.worldbank.dto.RegistrationRequestDTO;
 import ru.shvets.worldbank.service.AuthService;
 import ru.shvets.worldbank.util.JwtAuthenticationException;
 import ru.shvets.worldbank.util.RegistrationException;
-import ru.shvets.worldbank.util.ValidationException;
+import ru.shvets.worldbank.util.AuthValidationException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -58,6 +60,14 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
+    @ExceptionHandler(LockedException.class)
+    private ResponseEntity<ErrorResponseDTO> handleException(LockedException e) {
+        ErrorResponseDTO errorResponseDTO = new ErrorResponseDTO();
+        errorResponseDTO.setTimestamp(LocalDateTime.now());
+        errorResponseDTO.setMessage(e.getMessage());
+        return new ResponseEntity<>(errorResponseDTO, HttpStatus.UNAUTHORIZED);
+    }
+
     @ExceptionHandler
     private ResponseEntity<ErrorResponseDTO> handleException(AuthenticationException e) {
         ErrorResponseDTO errorResponseDTO = new ErrorResponseDTO();
@@ -75,7 +85,7 @@ public class AuthController {
     }
 
     @ExceptionHandler
-    private ResponseEntity<ErrorResponseDTO> handleException(ValidationException e) {
+    private ResponseEntity<ErrorResponseDTO> handleException(AuthValidationException e) {
         ErrorResponseDTO errorResponseDTO = new ErrorResponseDTO();
         errorResponseDTO.setTimestamp(LocalDateTime.now());
         errorResponseDTO.setMessage(e.getMessage());

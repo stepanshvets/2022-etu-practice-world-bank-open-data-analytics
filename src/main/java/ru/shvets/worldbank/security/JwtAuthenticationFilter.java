@@ -37,15 +37,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
+        if (request.getRequestURI().equals("/api/v1/auth/refresh") ||
+                request.getRequestURI().equals("/api/v1/auth/logout")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         try {
-            jwtUtil.isTokenValid(token);
+            jwtUtil.isTokenValid(token, false);
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
                 UsernamePasswordAuthenticationToken authentication = jwtUtil.getAuthentication(token);
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (JwtAuthenticationException e) {
+            SecurityContextHolder.clearContext();
             ErrorResponseDTO errorResponseDTO = new ErrorResponseDTO();
             errorResponseDTO.setMessage(e.getMessage());
             errorResponseDTO.setTimestamp(LocalDateTime.now());
@@ -59,9 +65,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String convertObjectToJson(Object object) throws JsonProcessingException {
-        if (object == null) {
+        if (object == null)
             return null;
-        }
 
         ObjectMapper mapper = new ObjectMapper();
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
