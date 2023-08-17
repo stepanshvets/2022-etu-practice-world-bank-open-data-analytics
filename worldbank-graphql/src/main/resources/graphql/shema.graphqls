@@ -1,0 +1,14 @@
+type DataGdp {
+    indicator: String
+    year: Int
+    country: String
+    countryCode: String
+    value: Float
+}
+
+type Query {
+    getGdp(countryCodeList: [String], startDate: String, endDate: String, startValue: String, endValue: String,
+    sortList: [String], page: String, perPage: String): [DataGdp]
+    getInflation(countryCodeList: [String], startDate: String, endDate: String, startValue: String, endValue: String,
+    sortList: [String], page: String, perPage: String): [DataGdp]
+}
